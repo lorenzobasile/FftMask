@@ -4,6 +4,7 @@ import timm
 import torch
 import argparse
 from data import get_dataloaders
+from model import MaskedClf, Mask
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNette ADV Finetune')
 parser.add_argument('--model', type=str, default='vgg11', help="network architecture")
@@ -33,16 +34,17 @@ base_model.load_state_dict(torch.load("trained_models/"+ args.model + ".pt"))
 adversary = PGD(base_model, 'cuda')
 correct=0
 correct_adv=0
+m=Mask().to(device)
+model=MaskedClf(m, base_model)
 for x, y in dataloaders['test']:
     x=x.to(device)
     y=y.to(device)
-    out = base_model(x)
-    out_adv = base_model(adversary.generate(x, y, epsilon=eps, step_size=eps/3, num_steps=10))
+    out = model(x)
+    out_adv = model(adversary.generate(x, y, epsilon=eps, step_size=eps/3, num_steps=10))
     correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
     correct += (torch.argmax(out, axis=1) == y).sum().item()
 print(f"Clean Accuracy on test set: {correct / len(dataloaders['test'].dataset) * 100:.5f} %")
 print(f"Adversarial Accuracy on test set: {correct_adv / len(dataloaders['test'].dataset) * 100:.5f} %")
-
 
 '''
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0)
