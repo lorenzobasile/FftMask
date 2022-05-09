@@ -23,6 +23,6 @@ def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
             correct=0
             with torch.no_grad():
                 for x, y in dataloaders[i]:
-                    out,_=model(x.to(device))
+                    out=model(x.to(device))
                     correct+=(torch.argmax(out, axis=1)==y.to(device)).sum().item()
             print("Accuracy on "+i+" set: ", correct/len(dataloaders[i].dataset))

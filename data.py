@@ -16,14 +16,14 @@ def get_dataloaders(data_dir, train_batch_size, test_batch_size, data_transforms
                 transforms.Grayscale(),
                 transforms.RandomAffine(degrees=0.),
                 transforms.ToTensor(),
-                transforms.Normalize(((0.449,), (0.226,)))
+                transforms.Normalize((0.449,), (0.226,))
             ]),
             'test': transforms.Compose([
                 transforms.Resize(128),
                 transforms.CenterCrop((128,128)),
                 transforms.Grayscale(),
                 transforms.ToTensor(),
-                transforms.Normalize(((0.449,), (0.226,)))
+                transforms.Normalize((0.449,), (0.226,))
             ]),
         }
 

@@ -24,8 +24,10 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 print(f'\nTraining {args.model} model...')
-model = timm.create_model(args.model, pretrained=False, num_classes=10)
+model = timm.create_model(args.model, pretrained=True, num_classes=10)
+model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
 model = model.to(device)
+
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0)
 scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
