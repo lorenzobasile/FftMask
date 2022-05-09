@@ -1,6 +1,11 @@
 from deeprobust.image.attack.pgd import PGD
 from train import ADVtrain
+import timm
+import torch
+import argparse
+from data import get_dataloaders
 
+parser = argparse.ArgumentParser(description='PyTorch ImageNette ADV Finetune')
 parser.add_argument('--model', type=str, default='vgg11', help="network architecture")
 parser.add_argument('--data', type=str, default='./data/imagenette2-320/', help='path to dataset')
 parser.add_argument('--train_batch_size', type=int, default=128, help='train batch size')
@@ -9,6 +14,8 @@ parser.add_argument('--epochs', type=int, default=50, help='number of epochs to 
 parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
 
 args = parser.parse_args()
+
+eps=0.01
 
 # get dataloaders
 dataloaders = get_dataloaders(data_dir=args.data,
@@ -24,7 +31,8 @@ base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1
 base_model = base_model.to(device)
 base_model.load_state_dict(torch.load("trained_models/"+ args.model + ".pt"))
 adversary = PGD(base_model, 'cuda')
-
+correct=0
+correct_adv=0
 for x, y in dataloaders['test']:
     x=x.to(device)
     y=y.to(device)
