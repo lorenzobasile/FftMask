@@ -12,7 +12,7 @@ parser.add_argument('--data', type=str, default='./data/imagenette2-320/', help=
 parser.add_argument('--train_batch_size', type=int, default=128, help='train batch size')
 parser.add_argument('--test_batch_size', type=int, default=64, help='test batch size')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs to train')
-parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
+parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
 
 args = parser.parse_args()
 
@@ -32,6 +32,8 @@ base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1
 base_model = base_model.to(device)
 base_model.load_state_dict(torch.load("trained_models/"+ args.model + ".pt"))
 adversary = PGD(base_model, 'cuda')
+for p in base_model.parameters():
+    p.requires_grad=False
 correct=0
 correct_adv=0
 m=Mask().to(device)
@@ -46,7 +48,7 @@ for x, y in dataloaders['test']:
 print(f"Clean Accuracy on test set: {correct / len(dataloaders['test'].dataset) * 100:.5f} %")
 print(f"Adversarial Accuracy on test set: {correct_adv / len(dataloaders['test'].dataset) * 100:.5f} %")
 
-'''
+
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0)
 scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
@@ -56,6 +58,6 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(
             pct_start=0.1
         )
 
-ADVtrain(base_model, dataloaders, args.epochs, optimizer, scheduler)
-torch.save(model.state_dict(), "trained_models/"+ args.model + ".pt")
-'''
+ADVtrain(model, 'PGD', dataloaders, args.epochs, optimizer, 0.01, scheduler)
+torch.save(model.state_dict(), "trained_models/adv"+ args.model + ".pt")
+

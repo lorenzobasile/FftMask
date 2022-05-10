@@ -1,3 +1,6 @@
+import torch.nn as nn
+import torch
+
 class Mask(nn.Module):
 
     def __init__(self, mask_size: tuple = (128, 128)):

@@ -1,4 +1,5 @@
 import torch
+from deeprobust.image.attack.pgd import PGD
 
 
 def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
@@ -53,6 +54,7 @@ def ADVtrain(model, adversarytype, dataloaders, n_epochs, optimizer, eps, schedu
             correct += (torch.argmax(out, axis=1) == y).sum().item()
             correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
             l=loss(out_adv, y)
+            l+=model.mask.weight.abs().sum()*0.0001
             optimizer.zero_grad()
             l.backward()
             optimizer.step()
