@@ -32,12 +32,12 @@ base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1
 base_model = base_model.to(device)
 base_model.load_state_dict(torch.load("trained_models/"+ args.model + ".pt"))
 adversary = PGD(base_model, 'cuda')
-for p in base_model.parameters():
-    p.requires_grad=False
 correct=0
 correct_adv=0
 m=Mask().to(device)
 model=MaskedClf(m, base_model)
+for p in model.clf.parameters():
+    p.requires_grad=False
 for x, y in dataloaders['test']:
     x=x.to(device)
     y=y.to(device)
@@ -58,6 +58,5 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(
             pct_start=0.1
         )
 
-ADVtrain(model, 'PGD', dataloaders, args.epochs, optimizer, 0.01, scheduler)
+ADVtrain(model, model.clf, 'PGD', dataloaders, args.epochs, optimizer, 0.01, scheduler)
 torch.save(model.state_dict(), "trained_models/adv"+ args.model + ".pt")
-
