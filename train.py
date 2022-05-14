@@ -58,6 +58,12 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
             optimizer.zero_grad()
             l.backward()
             optimizer.step()
+            out=model(x)
+            l=loss(out, y)
+            l+=model.mask.weight.abs().sum()*0.0001
+            optimizer.zero_grad()
+            l.backward()
+            optimizer.step()
         print(f"\n\nClean Accuracy on training set: {correct / len(dataloaders['train'].dataset) * 100:.5f} %")
         print(f"Adversarial Accuracy on training set: {correct_adv / len(dataloaders['train'].dataset) * 100:.5f} %")
         if scheduler is not None:
