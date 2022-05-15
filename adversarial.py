@@ -1,8 +1,11 @@
 from deeprobust.image.attack.pgd import PGD
-from train import ADVtrain
+from deeprobust.image.attack.fgsm import FGSM
+from train import ADVtrain, ADVDataLoader, AdversarialDataset
 import timm
 import torch
 import argparse
+from torch.utils.data import DataLoader
+
 from data import get_dataloaders
 from model import MaskedClf, Mask
 
@@ -36,6 +39,10 @@ correct=0
 correct_adv=0
 m=Mask().to(device)
 model=MaskedClf(m, base_model)
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(base_model, 'FGSM', dataloaders['train'], 0.1), batch_size=args.train_batch_size, shuffle=True),
+                'test': DataLoader(AdversarialDataset(base_model, 'FGSM', dataloaders['test'], 0.1), batch_size=args.test_batch_size, shuffle=False)}
+#AdversarialDataset(base_model, 'FGSM', dataloaders['train'], 0.1)
+'''
 for p in model.clf.parameters():
     p.requires_grad=False
 for x, y in dataloaders['test']:
@@ -60,3 +67,4 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(
 
 ADVtrain(model, model.clf, 'PGD', dataloaders, args.epochs, optimizer, 0.01, scheduler)
 torch.save(model.state_dict(), "trained_models/adv"+ args.model + ".pt")
+'''

@@ -1,7 +1,40 @@
 import torch
 from deeprobust.image.attack.pgd import PGD
-from torch.utils.data import TensorDataset, DataLoader
+from deeprobust.image.attack.fgsm import FGSM
 
+from torch.utils.data import TensorDataset, DataLoader, Dataset
+
+class AdversarialDataset(Dataset):
+
+    def __init__(self, model, adversarytype, dataloader, eps):
+        self.clean_imgs=torch.empty(0,1,128,128)
+        self.adv_imgs=torch.empty(0,1,128,128)
+        self.labels=torch.empty(0)
+        device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
+        adv_xy_list = []
+        for x, y in dataloader:
+            x=x.to(device)
+            y=y.to(device)
+            if adversarytype=='FGSM':
+                adversary = FGSM(model, 'cuda')
+                x_adv = adversary.generate(x, y, epsilon=eps)
+            if adversarytype=='PGD':
+                adversary = PGD(model, 'cuda')
+                x_adv = adversary.generate(x, y, epsilon=eps, step_size=eps/3, num_steps=10)
+            self.clean_imgs=torch.cat((self.clean_imgs, x.detach().cpu()))
+            self.adv_imgs=torch.cat((self.adv_imgs, x_adv.detach().cpu()))
+            self.labels=torch.cat((self.labels, y.detach().cpu()))
+
+        print(self.clean_imgs.shape)
+        #print(adv_xy_list[0])
+        #adv_xy_list=torch.tensor(adv_xy_list)
+    
+
+    def __len__(self):
+        return len(self.clean_imgs)
+
+    def __getitem__(self, idx):
+        return self.clean_imgs[idx], self.adv_imgs[idx], self.labels[idx]
 
 def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
 
@@ -88,7 +121,7 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
         print(f"Adversarial Accuracy on test set: {correct_adv / len(dataloaders['test'].dataset) * 100:.5f} %")
 
 def ADVDataLoader(model, adversarytype, dataloader, eps):
-
+    device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
     adv_xy_list = []
     for x, y in dataloader:
         x=x.to(device)
@@ -99,11 +132,11 @@ def ADVDataLoader(model, adversarytype, dataloader, eps):
         if adversarytype=='PGD':
             adversary = PGD(model, 'cuda')
             x_adv = adversary.generate(x, y, epsilon=eps, step_size=eps/3, num_steps=10)
-        adv_xy_list.append(tuple(x_adv, y))
+        adv_xy_list.append((x_adv.detach().cpu().numpy(), y.detach().cpu().numpy()))
+    #print(adv_xy_list[0])
+    #adv_xy_list=torch.tensor(adv_xy_list)
 
-    adv_xy_list=torch.tensor(adv_xy_list)
-
-    print(dataloader.dataset.shape)
+    print(dataloader.dataset)
 
     dataloader_adv = DataLoader(TensorDataset(adv_xy_list))
 
