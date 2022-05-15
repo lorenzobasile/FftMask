@@ -39,10 +39,9 @@ correct=0
 correct_adv=0
 m=Mask().to(device)
 model=MaskedClf(m, base_model)
-adv_dataloaders = {'train': DataLoader(AdversarialDataset(base_model, 'FGSM', dataloaders['train'], 0.1), batch_size=args.train_batch_size, shuffle=True),
-                'test': DataLoader(AdversarialDataset(base_model, 'FGSM', dataloaders['test'], 0.1), batch_size=args.test_batch_size, shuffle=False)}
-#AdversarialDataset(base_model, 'FGSM', dataloaders['train'], 0.1)
-'''
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(base_model, 'PGD', dataloaders['train'], eps), batch_size=args.train_batch_size, shuffle=True),
+                'test': DataLoader(AdversarialDataset(base_model, 'PGD', dataloaders['test'], eps), batch_size=args.test_batch_size, shuffle=False)}
+
 for p in model.clf.parameters():
     p.requires_grad=False
 for x, y in dataloaders['test']:
@@ -65,6 +64,5 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(
             pct_start=0.1
         )
 
-ADVtrain(model, model.clf, 'PGD', dataloaders, args.epochs, optimizer, 0.01, scheduler)
-torch.save(model.state_dict(), "trained_models/adv"+ args.model + ".pt")
-'''
+ADVtrain(model, model.clf, 'PGD', adv_dataloaders, args.epochs, optimizer, eps, scheduler)
+torch.save(model.state_dict(), "trained_models/adv"+ args.model + "_2.pt")
