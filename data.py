@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 
 
-def get_dataloaders(data_dir, train_batch_size, test_batch_size, data_transforms=None, shuffle_train=True, shuffle_test=False):
+def get_dataloaders(data_dir, train_batch_size, test_batch_size, data_transforms=None, shuffle_train=False, shuffle_test=False):
 
     if data_transforms is None:
         data_transforms = {
