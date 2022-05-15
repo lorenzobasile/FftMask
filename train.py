@@ -9,7 +9,7 @@ class AdversarialDataset(Dataset):
     def __init__(self, model, adversarytype, dataloader, eps):
         self.clean_imgs=torch.empty(0,1,128,128)
         self.adv_imgs=torch.empty(0,1,128,128)
-        self.labels=torch.empty(0)
+        self.labels=torch.empty(0, dtype=torch.int64)
         device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
         adv_xy_list = []
         for x, y in dataloader:
@@ -24,6 +24,7 @@ class AdversarialDataset(Dataset):
             self.clean_imgs=torch.cat((self.clean_imgs, x.detach().cpu()))
             self.adv_imgs=torch.cat((self.adv_imgs, x_adv.detach().cpu()))
             self.labels=torch.cat((self.labels, y.detach().cpu()))
+            self.labels.type(torch.LongTensor)
 
     def __len__(self):
         return len(self.clean_imgs)

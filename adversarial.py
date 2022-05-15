@@ -1,6 +1,6 @@
 from deeprobust.image.attack.pgd import PGD
 from deeprobust.image.attack.fgsm import FGSM
-from train import ADVtrain, ADVDataLoader, AdversarialDataset
+from train import ADVtrain, AdversarialDataset
 import timm
 import torch
 import argparse
