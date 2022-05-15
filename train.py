@@ -59,7 +59,7 @@ def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
             print("Accuracy on "+i+" set: ", correct/len(dataloaders[i].dataset))
 
 
-def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer, eps, hybrid=False, scheduler=None):
+def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer, eps, lam, hybrid=False, scheduler=None):
 
     loss=torch.nn.CrossEntropyLoss()
     device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
@@ -75,7 +75,7 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
             out=model(x)
             if hybrid:
                 l=loss(out, y)
-                l+=model.mask.weight.abs().sum()*0.0001
+                l+=model.mask.weight.abs().sum()*lam
                 optimizer.zero_grad()
                 l.backward()
                 optimizer.step()
@@ -83,7 +83,7 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
             correct += (torch.argmax(out, axis=1) == y).sum().item()
             correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
             l=loss(out_adv, y)
-            l+=model.mask.weight.abs().sum()*0.0001
+            l+=model.mask.weight.abs().sum()*lam
             optimizer.zero_grad()
             l.backward()
             optimizer.step()

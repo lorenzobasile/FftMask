@@ -35,15 +35,13 @@ base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1
 base_model = base_model.to(device)
 base_model.load_state_dict(torch.load("trained_models/"+ args.model + ".pt"))
 adversary = PGD(base_model, 'cuda')
-correct=0
-correct_adv=0
-m=Mask().to(device)
-model=MaskedClf(m, base_model)
+
 adv_dataloaders = {'train': DataLoader(AdversarialDataset(base_model, 'PGD', dataloaders['train'], eps), batch_size=args.train_batch_size, shuffle=True),
                 'test': DataLoader(AdversarialDataset(base_model, 'PGD', dataloaders['test'], eps), batch_size=args.test_batch_size, shuffle=False)}
 
-for p in model.clf.parameters():
-    p.requires_grad=False
+
+correct=0
+correct_adv=0
 for x, y in dataloaders['test']:
     x=x.to(device)
     y=y.to(device)
@@ -54,15 +52,25 @@ for x, y in dataloaders['test']:
 print(f"Clean Accuracy on test set: {correct / len(dataloaders['test'].dataset) * 100:.5f} %")
 print(f"Adversarial Accuracy on test set: {correct_adv / len(dataloaders['test'].dataset) * 100:.5f} %")
 
+lambdas=[1e-5, 1e-4, 1e-3, 1e-2]
 
-optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0)
-scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer,
-            args.lr,
-            epochs=args.epochs,
-            steps_per_epoch=len(dataloaders['train']),
-            pct_start=0.1
-        )
+for lam in lambdas:
 
-ADVtrain(model, model.clf, 'PGD', adv_dataloaders, args.epochs, optimizer, eps, scheduler)
-torch.save(model.state_dict(), "trained_models/adv"+ args.model + "_2.pt")
+
+    m=Mask().to(device)
+    model=MaskedClf(m, base_model)
+
+    for p in model.clf.parameters():
+        p.requires_grad=False
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                optimizer,
+                args.lr,
+                epochs=args.epochs,
+                steps_per_epoch=len(dataloaders['train']),
+                pct_start=0.1
+            )
+
+    ADVtrain(model, model.clf, 'PGD', adv_dataloaders, args.epochs, optimizer, eps, lam, True, scheduler)
+    torch.save(model.state_dict(), "trained_models/"+ args.model + "lambda"+lam+"_2.pt")
