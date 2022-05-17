@@ -34,10 +34,10 @@ base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
 base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
 base_model = base_model.to(device)
 base_model.load_state_dict(torch.load("trained_models/"+ args.model + ".pt"))
-adversary = PGD(base_model, 'cuda')
+adversary = FGSM(base_model, 'cuda')
 
-adv_dataloaders = {'train': DataLoader(AdversarialDataset(base_model, 'PGD', dataloaders['train'], eps), batch_size=args.train_batch_size, shuffle=True),
-                'test': DataLoader(AdversarialDataset(base_model, 'PGD', dataloaders['test'], eps), batch_size=args.test_batch_size, shuffle=False)}
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(base_model, 'FGSM', dataloaders['train'], eps), batch_size=args.train_batch_size, shuffle=True),
+                'test': DataLoader(AdversarialDataset(base_model, 'FGSM', dataloaders['test'], eps), batch_size=args.test_batch_size, shuffle=False)}
 
 
 correct=0
@@ -45,16 +45,17 @@ correct_adv=0
 for x, y in dataloaders['test']:
     x=x.to(device)
     y=y.to(device)
-    out = model(x)
-    out_adv = model(adversary.generate(x, y, epsilon=eps, step_size=eps/3, num_steps=10))
+    out = base_model(x)
+    out_adv = base_model(adversary.generate(x, y, epsilon=eps))#, step_size=eps/3, num_steps=10))
     correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
     correct += (torch.argmax(out, axis=1) == y).sum().item()
 print(f"Clean Accuracy on test set: {correct / len(dataloaders['test'].dataset) * 100:.5f} %")
 print(f"Adversarial Accuracy on test set: {correct_adv / len(dataloaders['test'].dataset) * 100:.5f} %")
-
+'''
 lambdas=[1e-5, 1e-4, 1e-3, 1e-2]
 
 for lam in lambdas:
+    print(lam)
 
 
     m=Mask().to(device)
@@ -72,5 +73,6 @@ for lam in lambdas:
                 pct_start=0.1
             )
 
-    ADVtrain(model, model.clf, 'PGD', adv_dataloaders, args.epochs, optimizer, eps, lam, True, scheduler)
-    torch.save(model.state_dict(), "trained_models/"+ args.model + "lambda"+lam+"_2.pt")
+    ADVtrain(model, model.clf, 'FGSM', adv_dataloaders, args.epochs, optimizer, eps, lam, True, scheduler)
+    torch.save(model.state_dict(), "trained_models/FGSM"+ args.model + "lambda"+str(lam)+"_2.pt")
+'''
