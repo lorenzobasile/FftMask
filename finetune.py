@@ -2,9 +2,11 @@ import timm
 import torch
 import argparse
 from data import get_dataloaders
-from train import train
+from utils import train
+import os
 
-parser = argparse.ArgumentParser(description='PyTorch ImageNette Fimetune')
+
+parser = argparse.ArgumentParser(description='PyTorch ImageNette Finetune')
 parser.add_argument('--model', type=str, default='vgg11', help="network architecture")
 parser.add_argument('--data', type=str, default='./data/imagenette2-320/', help='path to dataset')
 parser.add_argument('--train_batch_size', type=int, default=128, help='train batch size')
@@ -14,14 +16,12 @@ parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
 
 args = parser.parse_args()
 
-# get dataloaders
-dataloaders = get_dataloaders(data_dir=args.data,
-                              train_batch_size=args.train_batch_size,
-                              test_batch_size=args.test_batch_size)
+dataloaders = get_dataloaders(data_dir=args.data, train_batch_size=args.train_batch_size, test_batch_size=args.test_batch_size)
 
-# get device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+if not os.path.exists('trained_models/'+args.model):
+        os.makedirs('trained_models/+'args.model)
 
 print(f'\nTraining {args.model} model...')
 model = timm.create_model(args.model, pretrained=True, num_classes=10)
@@ -38,4 +38,4 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(
         )
 
 train(model, dataloaders, args.epochs, optimizer, scheduler)
-torch.save(model.state_dict(), "trained_models/"+ args.model + ".pt")
+torch.save(model.state_dict(), "trained_models/"+ args.model + "/clean.pt")
