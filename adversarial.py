@@ -1,12 +1,12 @@
 from deeprobust.image.attack.pgd import PGD
 from deeprobust.image.attack.fgsm import FGSM
-from train import ADVtrain, AdversarialDataset
+from utils import ADVtrain
 import timm
 import torch
 import argparse
 from torch.utils.data import DataLoader
 
-from data import get_dataloaders
+from data import get_dataloaders, AdversarialDataset
 from model import MaskedClf, Mask
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNette adversarial evaluation and training')
@@ -76,5 +76,5 @@ for lam in lambdas:
                 pct_start=0.1
             )
 
-    ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler)
-    torch.save(model.state_dict(), "trained_models/"+ args.model + "/adversarial_lambda_"+str(lam)+".pt")
+    ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler=scheduler)
+    torch.save(model.state_dict(), "trained_models/"+ args.model + "/"+args.attack+"_epsilon_"+str(args.epsilon)+"_lambda_"+str(lam)+".pt")
