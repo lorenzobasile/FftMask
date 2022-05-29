@@ -133,3 +133,5 @@ trained_models/
 *.sh*
 
 data/
+
+.DS_Store

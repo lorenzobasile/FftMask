@@ -56,7 +56,7 @@ for x, y in dataloaders['test']:
 print(f"Clean Accuracy on test set: {correct / len(dataloaders['test'].dataset) * 100:.5f} %")
 print(f"Adversarial Accuracy on test set: {correct_adv / len(dataloaders['test'].dataset) * 100:.5f} %")
 
-lambdas=[1e-5, 1e-4, 1e-3, 1e-2]
+lambdas=[0, 1e-5, 1e-4, 1e-3, 1e-2]
 
 for lam in lambdas:
     print("L1 penalty: ", lam)
