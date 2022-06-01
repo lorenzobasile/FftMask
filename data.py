@@ -1,6 +1,5 @@
 import os
-from deeprobust.image.attack.pgd import PGD
-from deeprobust.image.attack.fgsm import FGSM
+import foolbox as fb
 import torchvision
 import torch
 from torchvision.transforms import transforms
@@ -46,11 +45,12 @@ class AdversarialDataset(Dataset):
             x=x.to(device)
             y=y.to(device)
             if adversarytype=='FGSM':
-                adversary = FGSM(model, 'cuda')
+                adversary = fb.attacks.FGSM()
                 x_adv = adversary.generate(x, y, epsilon=eps)
             if adversarytype=='PGD':
                 adversary = PGD(model, 'cuda')
                 x_adv = adversary.generate(x, y, epsilon=eps, step_size=eps/3, num_steps=10)
+            x_adv, clipped, is_adv = adversary(model, x, y, epsilons=epsilons)
             self.clean_imgs=torch.cat((self.clean_imgs, x.detach().cpu()))
             self.adv_imgs=torch.cat((self.adv_imgs, x_adv.detach().cpu()))
             self.labels=torch.cat((self.labels, y.detach().cpu()))

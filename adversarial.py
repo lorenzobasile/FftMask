@@ -1,5 +1,4 @@
-from deeprobust.image.attack.pgd import PGD
-from deeprobust.image.attack.fgsm import FGSM
+import foolbox
 from utils import ADVtrain
 import timm
 import torch
@@ -26,21 +25,17 @@ eps=args.epsilon
 dataloaders = get_dataloaders(data_dir=args.data, train_batch_size=args.train_batch_size, test_batch_size=args.test_batch_size)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-print(f'\nTraining {args.model} model...')
 base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
 base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
 base_model = base_model.to(device)
 base_model.load_state_dict(torch.load("trained_models/"+ args.model + "/clean.pt"))
 
-if args.attack=='FGSM':
-    adversary = FGSM(base_model, 'cuda')
-elif args.attack=='PGD':
-    adversary = PGD(base_model, 'cuda')
+fmodel = foolbox.models.PyTorchModel(base_model, bounds=(0, 1), num_classes=10)
 
-adv_dataloaders = {'train': DataLoader(AdversarialDataset(base_model, args.attack, dataloaders['train'], args.epsilon), batch_size=args.train_batch_size, shuffle=True),
-                   'test': DataLoader(AdversarialDataset(base_model, args.attack, dataloaders['test'], args.epsilon), batch_size=args.test_batch_size, shuffle=False)}
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['train'], args.epsilon), batch_size=args.train_batch_size, shuffle=True),
+                   'test': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['test'], args.epsilon), batch_size=args.test_batch_size, shuffle=False)}
 
-
+'''
 correct=0
 correct_adv=0
 for x, y in dataloaders['test']:
@@ -78,3 +73,4 @@ for lam in lambdas:
 
     ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler=scheduler)
     torch.save(model.state_dict(), "trained_models/"+ args.model + "/"+args.attack+"_epsilon_"+str(args.epsilon)+"_lambda_"+str(lam)+".pt")
+'''
