@@ -39,18 +39,18 @@ class AdversarialDataset(Dataset):
         self.clean_imgs=torch.empty(0,1,128,128)
         self.adv_imgs=torch.empty(0,1,128,128)
         self.labels=torch.empty(0, dtype=torch.int64)
-        device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
-        adv_xy_list = []
-        for x, y in dataloader:
+        device=model.device
+        for k, (x, y) in enumerate(dataloader):
+            print("batch ", k)
             x=x.to(device)
             y=y.to(device)
             if adversarytype=='FGSM':
                 adversary = fb.attacks.FGSM()
-                x_adv = adversary.generate(x, y, epsilon=eps)
-            if adversarytype=='PGD':
-                adversary = PGD(model, 'cuda')
-                x_adv = adversary.generate(x, y, epsilon=eps, step_size=eps/3, num_steps=10)
-            x_adv, clipped, is_adv = adversary(model, x, y, epsilons=epsilons)
+            elif adversarytype=='PGD':
+                adversary = fb.attacks.PGD(steps=10, abs_stepsize=eps/3)
+            else:
+                adversary = 0
+            x_adv, clipped, is_adv = adversary(model, x, y, epsilons=eps)
             self.clean_imgs=torch.cat((self.clean_imgs, x.detach().cpu()))
             self.adv_imgs=torch.cat((self.adv_imgs, x_adv.detach().cpu()))
             self.labels=torch.cat((self.labels, y.detach().cpu()))

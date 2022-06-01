@@ -1,8 +1,6 @@
 import torch
-from deeprobust.image.attack.pgd import PGD
-from deeprobust.image.attack.fgsm import FGSM
 
-#from torch.utils.data import TensorDataset, DataLoader, Dataset
+
 
 
 def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
@@ -52,7 +50,7 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
                 optimizer.zero_grad()
                 l.backward()
                 optimizer.step()
-                model.mask.weight.clamp_(0., 1.)
+                model.mask.weight.data.clamp_(0.)
             out_adv=model(x_adv)
             correct += (torch.argmax(out, axis=1) == y).sum().item()
             correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
@@ -61,7 +59,7 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
             optimizer.zero_grad()
             l.backward()
             optimizer.step()
-            model.mask.weight.clamp_(0., 1.)
+            model.mask.weight.data.clamp_(0.)
         print(f"\n\nClean Accuracy on training set: {correct / len(dataloaders['train'].dataset) * 100:.5f} %")
         print(f"Adversarial Accuracy on training set: {correct_adv / len(dataloaders['train'].dataset) * 100:.5f} %")
         if scheduler is not None:

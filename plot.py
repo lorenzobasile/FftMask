@@ -11,7 +11,9 @@ parser.add_argument('--model', type=str, default='vgg11', help="network architec
 
 args = parser.parse_args()
 
-filenames=['PGD_epsilon_0.01_lambda_0.01', 'PGD_epsilon_0.01_lambda_0.001', 'PGD_epsilon_0.01_lambda_0.0001', 'PGD_epsilon_0.01_lambda_1e-05']
+#filenames=['PGD_epsilon_0.01_lambda_0.01', 'PGD_epsilon_0.01_lambda_0.001', 'PGD_epsilon_0.01_lambda_0.0001', 'PGD_epsilon_0.01_lambda_1e-05', 'PGD_epsilon_0.01_lambda_0']
+filename='PGD_INFTY_epsilon_0.01_lambda_1e-05'
+filename2='PGD_INFTY_epsilon_0.01_lambda_0'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -35,9 +37,6 @@ for filename in filenames:
     plt.savefig("figures/"+args.model+"/"+filename+".png")
 '''
 
-pgd='PGD_epsilon_0.01_lambda_0.001'
-fgsm='FGSM_epsilon_0.1_lambda_0.001'
-
 
 base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
 base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
@@ -46,12 +45,12 @@ correct=0
 correct_adv=0
 m=Mask().to(device)
 model=MaskedClf(m, base_model)
-model.load_state_dict(torch.load("trained_models/"+args.model+"/"+pgd+".pt"))
+model.load_state_dict(torch.load("trained_models/"+args.model+"/"+filename+".pt"))
 
 pgd=np.fft.fftshift(model.mask.weight.detach().cpu().reshape(128,128))
 
 
-model.load_state_dict(torch.load("trained_models/"+args.model+"/"+fgsm+".pt"))
+model.load_state_dict(torch.load("trained_models/"+args.model+"/"+filename2+".pt"))
 
 fgsm=np.fft.fftshift(model.mask.weight.detach().cpu().reshape(128,128))
 
@@ -59,3 +58,4 @@ plt.figure()
 plt.imshow(pgd-fgsm)
 plt.colorbar()
 plt.savefig("figures/"+args.model+"/difference.png")
+

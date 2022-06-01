@@ -29,23 +29,21 @@ base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
 base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
 base_model = base_model.to(device)
 base_model.load_state_dict(torch.load("trained_models/"+ args.model + "/clean.pt"))
-
-fmodel = foolbox.models.PyTorchModel(base_model, bounds=(0, 1), num_classes=10)
+base_model.eval()
+fmodel = foolbox.models.PyTorchModel(base_model, bounds=(0,1))
 
 adv_dataloaders = {'train': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['train'], args.epsilon), batch_size=args.train_batch_size, shuffle=True),
                    'test': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['test'], args.epsilon), batch_size=args.test_batch_size, shuffle=False)}
 
-'''
+print("Accuracy evaluation")
 correct=0
 correct_adv=0
-for x, y in dataloaders['test']:
+for x, x_adv, y in adv_dataloaders['test']:
     x=x.to(device)
+    x_adv=x_adv.to(device)
     y=y.to(device)
     out = base_model(x)
-    if args.attack=='FGSM':
-        out_adv = base_model(adversary.generate(x, y, epsilon=args.epsilon))
-    if args.attack=='PGD':
-        out_adv = base_model(adversary.generate(x, y, epsilon=args.epsilon, step_size=eps/3, num_steps=10))
+    out_adv = base_model(x_adv)
     correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
     correct += (torch.argmax(out, axis=1) == y).sum().item()
 print(f"Clean Accuracy on test set: {correct / len(dataloaders['test'].dataset) * 100:.5f} %")
@@ -73,4 +71,3 @@ for lam in lambdas:
 
     ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler=scheduler)
     torch.save(model.state_dict(), "trained_models/"+ args.model + "/"+args.attack+"_epsilon_"+str(args.epsilon)+"_lambda_"+str(lam)+".pt")
-'''
