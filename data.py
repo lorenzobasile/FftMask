@@ -49,13 +49,15 @@ class AdversarialDataset(Dataset):
             elif adversarytype=='PGD':
                 adversary = fb.attacks.PGD(steps=10, abs_stepsize=eps/3)
             else:
-                adversary = 0
+                adversary = fb.attacks.LinfinityBrendelBethgeAttack(steps=10)
             x_adv, clipped, is_adv = adversary(model, x, y, epsilons=eps)
             self.clean_imgs=torch.cat((self.clean_imgs, x.detach().cpu()))
             self.adv_imgs=torch.cat((self.adv_imgs, x_adv.detach().cpu()))
             self.labels=torch.cat((self.labels, y.detach().cpu()))
             self.labels.type(torch.LongTensor)
-
+        torch.save(self.clean_imgs, "advdata/clean"+adversarytype+".pt")
+        torch.save(self.adv_imgs, "advdata/adv"+adversarytype+".pt")
+        torch.save(self.labels, "advdata/lbl"+adversarytype+".pt")
     def __len__(self):
         return len(self.clean_imgs)
 
