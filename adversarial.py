@@ -11,7 +11,7 @@ from model import MaskedClf, Mask
 parser = argparse.ArgumentParser(description='PyTorch ImageNette adversarial evaluation and training')
 parser.add_argument('--model', type=str, default='vgg11', help="network architecture")
 parser.add_argument('--attack', type=str, default='PGD', help="adversarial attack")
-parser.add_argument('--epsilon', type=float, default='0.01', help="epsilon")
+parser.add_argument('--epsilon', type=float, default=0.01, help="epsilon")
 parser.add_argument('--data', type=str, default='./data/imagenette2-320/', help='path to dataset')
 parser.add_argument('--train_batch_size', type=int, default=128, help='train batch size')
 parser.add_argument('--test_batch_size', type=int, default=64, help='test batch size')
@@ -49,7 +49,7 @@ for x, x_adv, y in adv_dataloaders['test']:
 print(f"Clean Accuracy on test set: {correct / len(dataloaders['test'].dataset) * 100:.5f} %")
 print(f"Adversarial Accuracy on test set: {correct_adv / len(dataloaders['test'].dataset) * 100:.5f} %")
 
-lambdas=[0, 1e-5, 1e-4, 1e-3, 1e-2]
+lambdas=[0, 1e-5, 1e-4]
 
 for lam in lambdas:
     print("L1 penalty: ", lam)
@@ -69,5 +69,5 @@ for lam in lambdas:
                 pct_start=0.1
             )
 
-    ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler=scheduler)
+    clean, adv=ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler=scheduler)
     torch.save(model.state_dict(), "trained_models/"+ args.model + "/"+args.attack+"_epsilon_"+str(args.epsilon)+"_lambda_"+str(lam)+".pt")

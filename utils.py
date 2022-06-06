@@ -60,8 +60,10 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
             l.backward()
             optimizer.step()
             model.mask.weight.data.clamp_(0.)
-        print(f"\n\nClean Accuracy on training set: {correct / len(dataloaders['train'].dataset) * 100:.5f} %")
-        print(f"Adversarial Accuracy on training set: {correct_adv / len(dataloaders['train'].dataset) * 100:.5f} %")
+        clean_acc=correct / len(dataloaders['test'].dataset) * 100:.5f
+        adv_acc=correct_adv / len(dataloaders['test'].dataset) * 100:.5f
+        print(f"\n\nClean Accuracy on training set: {clean_acc} %")
+        print(f"Adversarial Accuracy on training set: {adv_acc} %")
         if scheduler is not None:
             scheduler.step()
         model.eval()
@@ -75,5 +77,8 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
             out_adv=model(x_adv)
             correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
             correct += (torch.argmax(out, axis=1) == y).sum().item()
-        print(f"Clean Accuracy on test set: {correct / len(dataloaders['test'].dataset) * 100:.5f} %")
-        print(f"Adversarial Accuracy on test set: {correct_adv / len(dataloaders['test'].dataset) * 100:.5f} %")
+        clean_acc=correct / len(dataloaders['test'].dataset) * 100:.5f
+        adv_acc=correct_adv / len(dataloaders['test'].dataset) * 100:.5f
+        print(f"Clean Accuracy on test set: {clean_acc} %")
+        print(f"Adversarial Accuracy on test set: {adv_acc} %")
+    return clean_acc, adv_acc

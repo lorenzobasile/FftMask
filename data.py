@@ -36,6 +36,14 @@ def get_dataloaders(data_dir, train_batch_size, test_batch_size, data_transforms
 class AdversarialDataset(Dataset):
 
     def __init__(self, model, adversarytype, dataloader, eps):
+        c="advdata/clean"+adversarytype+".pt"
+        a="advdata/adv"+adversarytype+".pt"
+        l="advdata/lbl"+adversarytype+".pt"
+        if os.path.isfile(c) and os.path.isfile(a) and os.path.isfile(l):
+            self.clean_imgs=torch.load(c)
+            self.adv_imgs=torch.load(a)
+            self.labels=torch.load(l)
+            return
         self.clean_imgs=torch.empty(0,1,128,128)
         self.adv_imgs=torch.empty(0,1,128,128)
         self.labels=torch.empty(0, dtype=torch.int64)
@@ -49,15 +57,15 @@ class AdversarialDataset(Dataset):
             elif adversarytype=='PGD':
                 adversary = fb.attacks.PGD(steps=10, abs_stepsize=eps/3)
             else:
-                adversary = fb.attacks.LinfinityBrendelBethgeAttack(steps=10)
+                adversary = fb.attacks.L2CarliniWagnerAttack()
             x_adv, clipped, is_adv = adversary(model, x, y, epsilons=eps)
             self.clean_imgs=torch.cat((self.clean_imgs, x.detach().cpu()))
             self.adv_imgs=torch.cat((self.adv_imgs, x_adv.detach().cpu()))
             self.labels=torch.cat((self.labels, y.detach().cpu()))
             self.labels.type(torch.LongTensor)
-        torch.save(self.clean_imgs, "advdata/clean"+adversarytype+".pt")
-        torch.save(self.adv_imgs, "advdata/adv"+adversarytype+".pt")
-        torch.save(self.labels, "advdata/lbl"+adversarytype+".pt")
+        torch.save(self.clean_imgs, c)
+        torch.save(self.adv_imgs, a)
+        torch.save(self.labels, l)
     def __len__(self):
         return len(self.clean_imgs)
 
