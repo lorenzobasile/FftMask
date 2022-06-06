@@ -8,25 +8,27 @@ import os
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNette ADV Finetune')
 parser.add_argument('--model', type=str, default='vgg11', help="network architecture")
-
+parser.add_argument('--attack', type=str, default='PGD', help="adversarial attack")
+parser.add_argument('--epsilon', type=float, default=0.01, help="epsilon")
+parser.add_argument('--data', type=str, default='./data/imagenette2-320/', help='path to dataset')
+parser.add_argument('--train_batch_size', type=int, default=128, help='train batch size')
+parser.add_argument('--test_batch_size', type=int, default=64, help='test batch size')
 args = parser.parse_args()
-
-#filenames=['PGD_epsilon_0.01_lambda_0.01', 'PGD_epsilon_0.01_lambda_0.001', 'PGD_epsilon_0.01_lambda_0.0001', 'PGD_epsilon_0.01_lambda_1e-05', 'PGD_epsilon_0.01_lambda_0']
-filename='PGD_INFTY_epsilon_0.01_lambda_1e-05'
-filename2='PGD_INFTY_epsilon_0.01_lambda_0'
+args.attack+"_epsilon_"+str(args.epsilon)+"_lambda_"+str(lam)
+filenames=[args.attack+"_epsilon_"+str(args.epsilon)+"_lambda_"+str(lam) for lam in [0, 1e-05, 0.0001]]
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 if not os.path.exists('figures/'+args.model):
         os.makedirs('figures/'+args.model)
-'''
+dataloaders = get_dataloaders(data_dir=args.data, train_batch_size=args.train_batch_size, test_batch_size=args.test_batch_size)
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['train'], args.epsilon), batch_size=args.train_batch_size, shuffle=True),
+                   'test': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['test'], args.epsilon), batch_size=args.test_batch_size, shuffle=False)}
+
 for filename in filenames:
-    print(f'\nTraining {args.model} model...')
     base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
     base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
     base_model = base_model.to(device)
-    correct=0
-    correct_adv=0
     m=Mask().to(device)
     model=MaskedClf(m, base_model)
     model.load_state_dict(torch.load("trained_models/"+args.model+"/"+filename+".pt"))
@@ -35,7 +37,32 @@ for filename in filenames:
     plt.imshow(np.fft.fftshift(model.mask.weight.detach().cpu().reshape(128,128)))
     plt.colorbar()
     plt.savefig("figures/"+args.model+"/"+filename+".png")
-'''
+
+    clean, adv, label = next(iter(adv_dataloaders['test']))
+    clean=clean.to(device)
+    adv=adv.to(device)
+    recon_clean=m(clean[0]).detach().cpu().reshape(128,128)
+    recon_adv=m(adv[0]).detach().cpu().reshape(128,128)
+
+    plt.figure()
+    plt.imshow(recon_clean)
+    plt.colorbar()
+    plt.savefig("figures/"+args.model+"/"+filename+"recon_clean.png")
+    plt.figure()
+    plt.imshow(recon_adv)
+    plt.colorbar()
+    plt.savefig("figures/"+args.model+"/"+filename+"recon_adv.png")
+    plt.figure()
+    plt.imshow(clean[0].detach().cpu().reshape(128,128))
+    plt.colorbar()
+    plt.savefig("figures/"+args.model+"/"+filename+"clean.png")
+    plt.figure()
+    plt.imshow(adv[0].detach().cpu().reshape(128,128))
+    plt.colorbar()
+    plt.savefig("figures/"+args.model+"/"+filename+"adv.png")
+
+
+
 
 
 base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
@@ -58,4 +85,3 @@ plt.figure()
 plt.imshow(pgd-fgsm)
 plt.colorbar()
 plt.savefig("figures/"+args.model+"/difference.png")
-
