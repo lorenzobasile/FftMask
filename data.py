@@ -35,15 +35,22 @@ def get_dataloaders(data_dir, train_batch_size, test_batch_size, data_transforms
 
 class AdversarialDataset(Dataset):
 
-    def __init__(self, model, adversarytype, dataloader, eps):
-        c="advdata/clean"+adversarytype+".pt"
-        a="advdata/adv"+adversarytype+".pt"
-        l="advdata/lbl"+adversarytype+".pt"
+    def __init__(self, model, adversarytype, dataloader, eps, train):
+        c="advdata/"+adversarytype+str(eps)+"/clean/"+train+".pt"
+        a="advdata/"+adversarytype+str(eps)+"/adv/"+train+".pt"
+        l="advdata/"+adversarytype+str(eps)+"/lbl/"+train+".pt"
         if os.path.isfile(c) and os.path.isfile(a) and os.path.isfile(l):
             self.clean_imgs=torch.load(c)
             self.adv_imgs=torch.load(a)
             self.labels=torch.load(l)
+            print("loading :", a)
             return
+        if not os.path.exists("advdata/"+adversarytype+str(eps)+"/clean"):
+            os.makedirs("advdata/"+adversarytype+str(eps)+"/clean")
+        if not os.path.exists("advdata/"+adversarytype+str(eps)+"/adv"):
+            os.makedirs("advdata/"+adversarytype+str(eps)+"/adv")
+        if not os.path.exists("advdata/"+adversarytype+str(eps)+"/lbl"):
+            os.makedirs("advdata/"+adversarytype+str(eps)+"/lbl")
         self.clean_imgs=torch.empty(0,1,128,128)
         self.adv_imgs=torch.empty(0,1,128,128)
         self.labels=torch.empty(0, dtype=torch.int64)
@@ -55,10 +62,10 @@ class AdversarialDataset(Dataset):
             if adversarytype=='FGSM':
                 adversary = fb.attacks.FGSM()
             elif adversarytype=='PGD':
-                adversary = fb.attacks.PGD(steps=10, abs_stepsize=eps/3)
+                adversary = fb.attacks.PGD()
             else:
-                adversary = fb.attacks.L2CarliniWagnerAttack()
-            x_adv, clipped, is_adv = adversary(model, x, y, epsilons=eps)
+                adversary = fb.attacks.L2PGD()
+            _, x_adv, is_adv = adversary(model, x, y, epsilons=eps)
             self.clean_imgs=torch.cat((self.clean_imgs, x.detach().cpu()))
             self.adv_imgs=torch.cat((self.adv_imgs, x_adv.detach().cpu()))
             self.labels=torch.cat((self.labels, y.detach().cpu()))

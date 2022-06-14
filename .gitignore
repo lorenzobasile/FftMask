@@ -135,3 +135,5 @@ trained_models/
 data/
 
 .DS_Store
+
+figures/trash

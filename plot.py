@@ -4,7 +4,9 @@ import torch
 import argparse
 import numpy as np
 from model import MaskedClf, Mask
+from data import get_dataloaders, AdversarialDataset
 import os
+from torch.utils.data import DataLoader
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNette ADV Finetune')
 parser.add_argument('--model', type=str, default='vgg11', help="network architecture")
@@ -14,16 +16,15 @@ parser.add_argument('--data', type=str, default='./data/imagenette2-320/', help=
 parser.add_argument('--train_batch_size', type=int, default=128, help='train batch size')
 parser.add_argument('--test_batch_size', type=int, default=64, help='test batch size')
 args = parser.parse_args()
-args.attack+"_epsilon_"+str(args.epsilon)+"_lambda_"+str(lam)
-filenames=[args.attack+"_epsilon_"+str(args.epsilon)+"_lambda_"+str(lam) for lam in [0, 1e-05, 0.0001]]
+filenames=[str(args.epsilon)+"_lambda_"+str(lam) for lam in [0, 1e-05, 0.0001]]
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-if not os.path.exists('figures/'+args.model):
-        os.makedirs('figures/'+args.model)
+if not os.path.exists('figures/'+args.attack):
+        os.makedirs('figures/'+args.attack)
 dataloaders = get_dataloaders(data_dir=args.data, train_batch_size=args.train_batch_size, test_batch_size=args.test_batch_size)
-adv_dataloaders = {'train': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['train'], args.epsilon), batch_size=args.train_batch_size, shuffle=True),
-                   'test': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['test'], args.epsilon), batch_size=args.test_batch_size, shuffle=False)}
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(None, args.attack, dataloaders['train'], args.epsilon, 'train'), batch_size=args.train_batch_size, shuffle=True),
+                   'test': DataLoader(AdversarialDataset(None, args.attack, dataloaders['test'], args.epsilon, 'test'), batch_size=args.test_batch_size, shuffle=False)}
 
 for filename in filenames:
     base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
@@ -31,40 +32,57 @@ for filename in filenames:
     base_model = base_model.to(device)
     m=Mask().to(device)
     model=MaskedClf(m, base_model)
-    model.load_state_dict(torch.load("trained_models/"+args.model+"/"+filename+".pt"))
+    model.load_state_dict(torch.load("trained_models/"+args.attack+"/"+filename+".pt"))
+
+    print("Accuracy evaluation")
+    correct=0
+    correct_adv=0
+    for x, x_adv, y in adv_dataloaders['test']:
+        x=x.to(device)
+        x_adv=x_adv.to(device)
+        y=y.to(device)
+        out = base_model(x)
+        out_adv = base_model(x_adv)
+        correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
+        correct += (torch.argmax(out, axis=1) == y).sum().item()
+    print(f"Clean Accuracy on test set: {correct / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
+    print(f"Adversarial Accuracy on test set: {correct_adv / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
+    
 
     plt.figure()
-    plt.imshow(np.fft.fftshift(model.mask.weight.detach().cpu().reshape(128,128)))
+    plt.imshow(np.fft.fftshift(model.mask.weight.detach().cpu().reshape(128,128)), cmap='Blues') #bwr for diverging
     plt.colorbar()
-    plt.savefig("figures/"+args.model+"/"+filename+".png")
+    plt.savefig("figures/"+args.attack+"/"+filename+".png")
 
     clean, adv, label = next(iter(adv_dataloaders['test']))
     clean=clean.to(device)
     adv=adv.to(device)
-    recon_clean=m(clean[0]).detach().cpu().reshape(128,128)
-    recon_adv=m(adv[0]).detach().cpu().reshape(128,128)
+    recon_clean=m(clean[1]).detach().cpu().reshape(128,128)
+    recon_adv=m(adv[1]).detach().cpu().reshape(128,128)
+    clean=clean[1].detach().cpu().reshape(128,128)
+    adv=adv[1].detach().cpu().reshape(128,128)
 
+    print("difference (linf): ", torch.norm(adv-clean, float('inf')))
+    print(adv, clean)
+    print("difference (l2): ", torch.norm(adv-clean, 2))
+    
     plt.figure()
-    plt.imshow(recon_clean)
-    plt.colorbar()
-    plt.savefig("figures/"+args.model+"/"+filename+"recon_clean.png")
+    plt.imshow(recon_clean, cmap='gray')
+    plt.savefig("figures/"+args.attack+"/"+filename+"recon_clean.png")
     plt.figure()
-    plt.imshow(recon_adv)
-    plt.colorbar()
-    plt.savefig("figures/"+args.model+"/"+filename+"recon_adv.png")
+    plt.imshow(recon_adv, cmap='gray')
+    plt.savefig("figures/"+args.attack+"/"+filename+"recon_adv.png")
     plt.figure()
-    plt.imshow(clean[0].detach().cpu().reshape(128,128))
-    plt.colorbar()
-    plt.savefig("figures/"+args.model+"/"+filename+"clean.png")
+    plt.imshow(clean, cmap='gray')
+    plt.savefig("figures/"+args.attack+"/"+filename+"clean.png")
     plt.figure()
-    plt.imshow(adv[0].detach().cpu().reshape(128,128))
-    plt.colorbar()
-    plt.savefig("figures/"+args.model+"/"+filename+"adv.png")
+    plt.imshow(adv, cmap='gray')
+    plt.savefig("figures/"+args.attack+"/"+filename+"adv.png")
 
 
 
 
-
+'''
 base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
 base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
 base_model = base_model.to(device)
@@ -85,3 +103,4 @@ plt.figure()
 plt.imshow(pgd-fgsm)
 plt.colorbar()
 plt.savefig("figures/"+args.model+"/difference.png")
+'''

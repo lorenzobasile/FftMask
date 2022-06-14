@@ -4,6 +4,7 @@ import timm
 import torch
 import argparse
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 
 from data import get_dataloaders, AdversarialDataset
 from model import MaskedClf, Mask
@@ -15,7 +16,7 @@ parser.add_argument('--epsilon', type=float, default=0.01, help="epsilon")
 parser.add_argument('--data', type=str, default='./data/imagenette2-320/', help='path to dataset')
 parser.add_argument('--train_batch_size', type=int, default=128, help='train batch size')
 parser.add_argument('--test_batch_size', type=int, default=64, help='test batch size')
-parser.add_argument('--epochs', type=int, default=50, help='number of epochs to train')
+parser.add_argument('--epochs', type=int, default=30, help='number of epochs to train')
 parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
 
 args = parser.parse_args()
@@ -28,12 +29,15 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
 base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
 base_model = base_model.to(device)
-base_model.load_state_dict(torch.load("trained_models/"+ args.model + "/clean.pt"))
+base_model.load_state_dict(torch.load("trained_models/clean.pt"))
 base_model.eval()
 fmodel = foolbox.models.PyTorchModel(base_model, bounds=(0,1))
 
-adv_dataloaders = {'train': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['train'], args.epsilon), batch_size=args.train_batch_size, shuffle=True),
-                   'test': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['test'], args.epsilon), batch_size=args.test_batch_size, shuffle=False)}
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['train'], args.epsilon, 'train'), batch_size=args.train_batch_size, shuffle=True),
+                   'test': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['test'], args.epsilon, 'test'), batch_size=args.test_batch_size, shuffle=False)}
+
+print(len(dataloaders['train'].dataset), len(dataloaders['test'].dataset), len(adv_dataloaders['train'].dataset), len(adv_dataloaders['test'].dataset))
+
 
 print("Accuracy evaluation")
 correct=0
@@ -46,9 +50,9 @@ for x, x_adv, y in adv_dataloaders['test']:
     out_adv = base_model(x_adv)
     correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
     correct += (torch.argmax(out, axis=1) == y).sum().item()
-print(f"Clean Accuracy on test set: {correct / len(dataloaders['test'].dataset) * 100:.5f} %")
-print(f"Adversarial Accuracy on test set: {correct_adv / len(dataloaders['test'].dataset) * 100:.5f} %")
-
+print(f"Clean Accuracy on test set: {correct / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
+print(f"Adversarial Accuracy on test set: {correct_adv / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
+'''
 lambdas=[0, 1e-5, 1e-4]
 
 for lam in lambdas:
@@ -69,5 +73,10 @@ for lam in lambdas:
                 pct_start=0.1
             )
 
-    clean, adv=ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler=scheduler)
-    torch.save(model.state_dict(), "trained_models/"+ args.model + "/"+args.attack+"_epsilon_"+str(args.epsilon)+"_lambda_"+str(lam)+".pt")
+    clean, adv, penalties=ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler=scheduler)
+    torch.save(model.state_dict(), "trained_models/"+args.attack+"/"+str(args.epsilon)+"_lambda_"+str(lam)+".pt")
+
+    plt.figure()
+    plt.semilogy(penalties)
+    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"_lambda_"+str(lam)+"_penalty.png")
+'''

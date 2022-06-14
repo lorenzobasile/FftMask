@@ -32,6 +32,7 @@ def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
 
 def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer, eps, lam, hybrid=False, scheduler=None):
 
+    penalties=[]
     loss=torch.nn.CrossEntropyLoss()
     device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
     for epoch in range(n_epochs):
@@ -46,7 +47,9 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
             out=model(x)
             if hybrid:
                 l=loss(out, y)
-                l+=model.mask.weight.abs().sum()*lam
+                penalty=model.mask.weight.abs().sum()
+                penalties.append(penalty.detach().cpu().numpy())
+                l+=penalty*lam
                 optimizer.zero_grad()
                 l.backward()
                 optimizer.step()
@@ -55,15 +58,17 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
             correct += (torch.argmax(out, axis=1) == y).sum().item()
             correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
             l=loss(out_adv, y)
-            l+=model.mask.weight.abs().sum()*lam
+            penalty=model.mask.weight.abs().sum()
+            penalties.append(penalty.detach().cpu().numpy())
+            l+=penalty*lam
             optimizer.zero_grad()
             l.backward()
             optimizer.step()
             model.mask.weight.data.clamp_(0.)
-        clean_acc=correct / len(dataloaders['test'].dataset) * 100:.5f
-        adv_acc=correct_adv / len(dataloaders['test'].dataset) * 100:.5f
-        print(f"\n\nClean Accuracy on training set: {clean_acc} %")
-        print(f"Adversarial Accuracy on training set: {adv_acc} %")
+        clean_acc=correct / len(dataloaders['train'].dataset) * 100
+        adv_acc=correct_adv / len(dataloaders['train'].dataset) * 100
+        print(f"\n\nClean Accuracy on training set: {clean_acc:.5f} %")
+        print(f"Adversarial Accuracy on training set: {adv_acc:.5f} %")
         if scheduler is not None:
             scheduler.step()
         model.eval()
@@ -77,8 +82,8 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
             out_adv=model(x_adv)
             correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
             correct += (torch.argmax(out, axis=1) == y).sum().item()
-        clean_acc=correct / len(dataloaders['test'].dataset) * 100:.5f
-        adv_acc=correct_adv / len(dataloaders['test'].dataset) * 100:.5f
-        print(f"Clean Accuracy on test set: {clean_acc} %")
-        print(f"Adversarial Accuracy on test set: {adv_acc} %")
-    return clean_acc, adv_acc
+        clean_acc=correct / len(dataloaders['test'].dataset) * 100
+        adv_acc=correct_adv / len(dataloaders['test'].dataset) * 100
+        print(f"Clean Accuracy on test set: {clean_acc:.5f} %")
+        print(f"Adversarial Accuracy on test set: {adv_acc:.5f} %")
+    return clean_acc, adv_acc, penalties
