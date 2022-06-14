@@ -31,10 +31,9 @@ base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1
 base_model = base_model.to(device)
 base_model.load_state_dict(torch.load("trained_models/clean.pt"))
 base_model.eval()
-fmodel = foolbox.models.PyTorchModel(base_model, bounds=(0,1))
 
-adv_dataloaders = {'train': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['train'], args.epsilon, 'train'), batch_size=args.train_batch_size, shuffle=True),
-                   'test': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['test'], args.epsilon, 'test'), batch_size=args.test_batch_size, shuffle=False)}
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(base_model, args.attack, dataloaders['train'], args.epsilon, 'train'), batch_size=args.train_batch_size, shuffle=True),
+                   'test': DataLoader(AdversarialDataset(base_model, args.attack, dataloaders['test'], args.epsilon, 'test'), batch_size=args.test_batch_size, shuffle=False)}
 
 print(len(dataloaders['train'].dataset), len(dataloaders['test'].dataset), len(adv_dataloaders['train'].dataset), len(adv_dataloaders['test'].dataset))
 
