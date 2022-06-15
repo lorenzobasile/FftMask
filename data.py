@@ -55,7 +55,7 @@ class AdversarialDataset(Dataset):
         self.clean_imgs=torch.empty(0,1,128,128)
         self.adv_imgs=torch.empty(0,1,128,128)
         self.labels=torch.empty(0, dtype=torch.int64)
-        device=model.device
+        device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
         for k, (x, y) in enumerate(dataloader):
             print("batch ", k)
             x=x.to(device)
