@@ -57,11 +57,11 @@ print(f"Adversarial Accuracy on test set: {correct_adv / len(adv_dataloaders['te
 
 lambdas=[0, 1e-5, 1e-4, 1e-3, 1e-2]
 
-if not os.path.exists("trained_models/"+args.attack+str(args.epsilon)):
-        os.makedirs("trained_models/"+args.attack+str(args.epsilon))
+if not os.path.exists("trained_models/"+args.attack+"/"+str(args.epsilon)):
+        os.makedirs("trained_models/"+args.attack+"/"+str(args.epsilon))
 
-if not os.path.exists("figures/"+args.attack+str(args.epsilon)):
-        os.makedirs("figures/"+args.attack+str(args.epsilon))
+if not os.path.exists("figures/"+args.attack+"/"+str(args.epsilon)):
+        os.makedirs("figures/"+args.attack+"/"+str(args.epsilon))
 
 for lam in lambdas:
     print("L1 penalty: ", lam)
@@ -82,8 +82,15 @@ for lam in lambdas:
             )
 
     clean, adv, penalties=ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler=scheduler)
-    torch.save(model.state_dict(), "trained_models/"+args.attack+str(args.epsilon)+"/lambda_"+str(lam)+".pt")
+    torch.save(model.state_dict(), "trained_models/"+args.attack+"/"+str(args.epsilon)+"/lambda_"+str(lam)+".pt")
 
     plt.figure()
     plt.semilogy(penalties)
-    plt.savefig("figures/"+args.attack+str(args.epsilon)+"/lambda_"+str(lam)+"_penalty.png")
+    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/lambda_"+str(lam)+"_penalty.png")
+
+    plt.figure()
+    plt.title("Accuracy during mask training")
+    plt.plot(clean, label='clean')
+    plt.plot(adv, label='adversarial')
+    plt.legend()
+    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/lambda_"+str(lam)+"_acc.png")

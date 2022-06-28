@@ -66,12 +66,12 @@ class AdversarialDataset(Dataset):
             print("batch ", k)
             x=x.to(device)
             y=y.to(device)
-            if adversarytype=='L2PGD':
-                adversary = fb.attacks.L2PGD(steps=10, abs_stepsize=eps/3)
+            if adversarytype=='DF':
+                adversary = fb.attacks.LinfDeepFoolAttack(steps=10, candidates=5)
             elif adversarytype=='PGD':
                 adversary = fb.attacks.PGD(steps=10, abs_stepsize=eps/3)
             else:
-                adversary = fb.attacks.LinfDeepFoolAttack()
+                adversary = None
             x_adv, clipped, is_adv = adversary(model, x, y, epsilons=eps)
             self.clean_imgs=torch.cat((self.clean_imgs, x.detach().cpu()))
             self.adv_imgs=torch.cat((self.adv_imgs, x_adv.detach().cpu()))

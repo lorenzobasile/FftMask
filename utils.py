@@ -32,6 +32,8 @@ def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
 
 def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer, eps, lam, hybrid=False, scheduler=None):
 
+    clean=[]
+    adv=[]
     penalties=[]
     loss=torch.nn.CrossEntropyLoss()
     device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
@@ -86,4 +88,6 @@ def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer,
         adv_acc=correct_adv / len(dataloaders['test'].dataset) * 100
         print(f"Clean Accuracy on test set: {clean_acc:.5f} %")
         print(f"Adversarial Accuracy on test set: {adv_acc:.5f} %")
-    return clean_acc, adv_acc, penalties
+        clean.append(clean_acc)
+        adv.append(adv_acc)
+    return clean, adv, penalties
