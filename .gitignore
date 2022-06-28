@@ -134,6 +134,8 @@ trained_models/
 
 data/
 
+advdata/
+
 .DS_Store
 
 figures/trash

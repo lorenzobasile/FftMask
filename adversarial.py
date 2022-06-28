@@ -5,6 +5,8 @@ import torch
 import argparse
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
+import os
+import numpy as np
 
 from data import get_dataloaders, AdversarialDataset
 from model import MaskedClf, Mask
@@ -31,9 +33,10 @@ base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1
 base_model = base_model.to(device)
 base_model.load_state_dict(torch.load("trained_models/clean.pt"))
 base_model.eval()
+fmodel = foolbox.models.PyTorchModel(base_model, bounds=(-np.inf,np.inf))
 
-adv_dataloaders = {'train': DataLoader(AdversarialDataset(base_model, args.attack, dataloaders['train'], args.epsilon, 'train'), batch_size=args.train_batch_size, shuffle=True),
-                   'test': DataLoader(AdversarialDataset(base_model, args.attack, dataloaders['test'], args.epsilon, 'test'), batch_size=args.test_batch_size, shuffle=False)}
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['train'], args.epsilon, 'train'), batch_size=args.train_batch_size, shuffle=True),
+                   'test': DataLoader(AdversarialDataset(fmodel, args.attack, dataloaders['test'], args.epsilon, 'test'), batch_size=args.test_batch_size, shuffle=False)}
 
 print(len(dataloaders['train'].dataset), len(dataloaders['test'].dataset), len(adv_dataloaders['train'].dataset), len(adv_dataloaders['test'].dataset))
 
@@ -51,8 +54,14 @@ for x, x_adv, y in adv_dataloaders['test']:
     correct += (torch.argmax(out, axis=1) == y).sum().item()
 print(f"Clean Accuracy on test set: {correct / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
 print(f"Adversarial Accuracy on test set: {correct_adv / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
-'''
-lambdas=[0, 1e-5, 1e-4]
+
+lambdas=[0, 1e-5, 1e-4, 1e-3, 1e-2]
+
+if not os.path.exists("trained_models/"+args.attack+str(args.epsilon)):
+        os.makedirs("trained_models/"+args.attack+str(args.epsilon))
+
+if not os.path.exists("figures/"+args.attack+str(args.epsilon)):
+        os.makedirs("figures/"+args.attack+str(args.epsilon))
 
 for lam in lambdas:
     print("L1 penalty: ", lam)
@@ -73,9 +82,8 @@ for lam in lambdas:
             )
 
     clean, adv, penalties=ADVtrain(model, model.clf, args.attack, adv_dataloaders, args.epochs, optimizer, args.epsilon, lam, hybrid=True, scheduler=scheduler)
-    torch.save(model.state_dict(), "trained_models/"+args.attack+"/"+str(args.epsilon)+"_lambda_"+str(lam)+".pt")
+    torch.save(model.state_dict(), "trained_models/"+args.attack+str(args.epsilon)+"/lambda_"+str(lam)+".pt")
 
     plt.figure()
     plt.semilogy(penalties)
-    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"_lambda_"+str(lam)+"_penalty.png")
-'''
+    plt.savefig("figures/"+args.attack+str(args.epsilon)+"/lambda_"+str(lam)+"_penalty.png")
