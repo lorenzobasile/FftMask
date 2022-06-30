@@ -54,30 +54,31 @@ for filename in filenames:
         out_masked=model(x)
         out_adv_masked=model(x_adv)
         for i, p in enumerate(ps):
-            batch_norm[b, i]=torch.norm(x_adv-x, p)
+            batch_norm[b, i]=torch.mean(torch.norm(x_adv-x, dim=(1,2,3), p=p))
         correct_adv += (torch.argmax(out_adv, axis=1) == y).sum().item()
         correct += (torch.argmax(out, axis=1) == y).sum().item()
         correct_adv_masked += (torch.argmax(out_adv_masked, axis=1) == y).sum().item()
         correct_masked += (torch.argmax(out_masked, axis=1) == y).sum().item()
-
-    for i, p in enumerate(ps):
-        print(f"Avg {p} norm of the attack: {torch.mean(batch_norm, axis=0)}")
+    print(f"Lambda: {filename[6:]}")
+    print(f"Avg norm of the attack: {torch.mean(batch_norm, axis=0)}")
     print(f"Clean Accuracy on test set: {correct / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
     print(f"Adversarial Accuracy on test set: {correct_adv / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
 
     print(f"Clean Accuracy on test set (after mask training): {correct_masked / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
     print(f"Adversarial Accuracy on test set (after mask training): {correct_adv_masked / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
 
-    clean, adv, label = next(iter(adv_dataloaders['test']))
-    clean=clean.to(device)
-    adv=adv.to(device)
+    
 
     for n in range(args.N):
+        clean, adv, label = next(iter(adv_dataloaders['test']))
+        clean=clean.to(device)
+        adv=adv.to(device)
+        print(n)
 
-        recon_clean=m(clean[n]).detach().cpu().reshape(128,128)
-        recon_adv=m(adv[n]).detach().cpu().reshape(128,128)
-        clean=clean[n].detach().cpu().reshape(128,128)
-        adv=adv[n].detach().cpu().reshape(128,128)
+        recon_clean=m(clean[0]).detach().cpu().reshape(128,128)
+        recon_adv=m(adv[0]).detach().cpu().reshape(128,128)
+        clean=clean[0].detach().cpu().reshape(128,128)
+        adv=adv[0].detach().cpu().reshape(128,128)
 
 
         plt.figure()

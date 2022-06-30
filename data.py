@@ -68,7 +68,12 @@ class AdversarialDataset(Dataset):
             elif adversarytype=='PGD':
                 adversary = fb.attacks.PGD(steps=10, abs_stepsize=eps/3)
             elif adversarytype=='FMN':
-                adversary = fb.attacks.L1FMNAttack()
+                if eps==1:
+                    adversary = fb.attacks.L1FMNAttack()
+                elif eps==2:
+                    adversary = fb.attacks.L2FMNAttack()
+                else:
+                    adversary = fb.attacks.LInfFMNAttack()
             else:
                 adversary = None
             x_adv, clipped, is_adv = adversary(model, x, y, epsilons=eps)
