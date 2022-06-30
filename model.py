@@ -1,5 +1,12 @@
 import torch.nn as nn
 import torch
+import timm
+
+
+def Classifier(modelname):
+    base_model = timm.create_model(modelname, pretrained=True, num_classes=10)
+    base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
+    return base_model
 
 class Mask(nn.Module):
 

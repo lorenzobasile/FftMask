@@ -1,7 +1,4 @@
 import os
-#from deeprobust.image.attack.pgd import PGD
-#from deeprobust.image.attack.deepfool import DeepFool
-from foolbox.criteria import Misclassification
 import torchvision
 import torch
 from torchvision.transforms import transforms
