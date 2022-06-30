@@ -17,6 +17,8 @@ parser.add_argument('--epsilon', type=float, default=0.01, help="epsilon")
 parser.add_argument('--data', type=str, default='./data/imagenette2-320/', help='path to dataset')
 parser.add_argument('--train_batch_size', type=int, default=128, help='train batch size')
 parser.add_argument('--test_batch_size', type=int, default=64, help='test batch size')
+parser.add_argument('--N', type=int, default=5, help='images to save')
+
 
 args = parser.parse_args()
 
@@ -42,6 +44,7 @@ for filename in filenames:
     correct_adv=0
     correct_masked=0
     correct_adv_masked=0
+    batch_norm=torch.zeros(len(adv_dataloaders['test']), len(ps))
     for b, (x, x_adv, y) in enumerate(adv_dataloaders['test']):
         x=x.to(device)
         x_adv=x_adv.to(device)
@@ -65,35 +68,27 @@ for filename in filenames:
     print(f"Clean Accuracy on test set (after mask training): {correct_masked / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
     print(f"Adversarial Accuracy on test set (after mask training): {correct_adv_masked / len(adv_dataloaders['test'].dataset) * 100:.5f} %")
 
-    '''
-
-    plt.figure()
-    plt.imshow(np.fft.fftshift(model.mask.weight.detach().cpu().reshape(128,128)), cmap='Blues') #bwr for diverging
-    plt.colorbar()
-    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+".png")
-
     clean, adv, label = next(iter(adv_dataloaders['test']))
     clean=clean.to(device)
     adv=adv.to(device)
-    recon_clean=m(clean[1]).detach().cpu().reshape(128,128)
-    recon_adv=m(adv[1]).detach().cpu().reshape(128,128)
-    clean=clean[1].detach().cpu().reshape(128,128)
-    adv=adv[1].detach().cpu().reshape(128,128)
 
-    print("difference (linf): ", torch.norm(adv-clean, float('inf')))
-    print(adv, clean)
-    print("difference (l2): ", torch.norm(adv-clean, 2))
+    for n in range(args.N):
 
-    plt.figure()
-    plt.imshow(recon_clean, cmap='gray')
-    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+"recon_clean.png")
-    plt.figure()
-    plt.imshow(recon_adv, cmap='gray')
-    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+"recon_adv.png")
-    plt.figure()
-    plt.imshow(clean, cmap='gray')
-    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+"clean.png")
-    plt.figure()
-    plt.imshow(adv, cmap='gray')
-    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+"adv.png")
-    '''
+        recon_clean=m(clean[n]).detach().cpu().reshape(128,128)
+        recon_adv=m(adv[n]).detach().cpu().reshape(128,128)
+        clean=clean[n].detach().cpu().reshape(128,128)
+        adv=adv[n].detach().cpu().reshape(128,128)
+
+
+        plt.figure()
+        plt.imshow(recon_clean, cmap='gray')
+        plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+str(n)+"recon_clean.png")
+        plt.figure()
+        plt.imshow(recon_adv, cmap='gray')
+        plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+str(n)+"recon_adv.png")
+        plt.figure()
+        plt.imshow(clean, cmap='gray')
+        plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+str(n)+"clean.png")
+        plt.figure()
+        plt.imshow(adv, cmap='gray')
+        plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+str(n)+"adv.png")
