@@ -20,19 +20,18 @@ filenames=["lambda_"+str(lam) for lam in [0, 1e-05, 0.0001, 0.001, 0.01]]
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-if not os.path.exists('figures/'+args.attack+str(args.epsilon)):
-        os.makedirs('figures/'+args.attack+str(args.epsilon))
-#dataloaders = get_dataloaders(data_dir=args.data, train_batch_size=args.train_batch_size, test_batch_size=args.test_batch_size)
-#adv_dataloaders = {'train': DataLoader(AdversarialDataset(None, args.attack, dataloaders['train'], args.epsilon, 'train'), batch_size=args.train_batch_size, shuffle=True),
-#                   'test': DataLoader(AdversarialDataset(None, args.attack, dataloaders['test'], args.epsilon, 'test'), batch_size=args.test_batch_size, shuffle=False)}
-'''
+if not os.path.exists('figures/'+args.attack+"/"+str(args.epsilon)):
+        os.makedirs('figures/'+args.attack+"/"+str(args.epsilon))
+dataloaders = get_dataloaders(data_dir=args.data, train_batch_size=args.train_batch_size, test_batch_size=args.test_batch_size)
+adv_dataloaders = {'train': DataLoader(AdversarialDataset(None, args.attack, dataloaders['train'], args.epsilon, 'train'), batch_size=args.train_batch_size, shuffle=True),
+                   'test': DataLoader(AdversarialDataset(None, args.attack, dataloaders['test'], args.epsilon, 'test'), batch_size=args.test_batch_size, shuffle=False)}
 for filename in filenames:
     base_model = timm.create_model(args.model, pretrained=True, num_classes=10)
     base_model.features[0]=torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
     base_model = base_model.to(device)
     m=Mask().to(device)
     model=MaskedClf(m, base_model)
-    model.load_state_dict(torch.load("trained_models/"+args.attack+str(args.epsilon)+"/"+filename+".pt"))
+    model.load_state_dict(torch.load("trained_models/"+args.attack+"/"+str(args.epsilon)+"/"+filename+".pt"))
 
     print("Accuracy evaluation")
     correct=0
@@ -52,7 +51,7 @@ for filename in filenames:
     plt.figure()
     plt.imshow(np.fft.fftshift(model.mask.weight.detach().cpu().reshape(128,128)), cmap='Blues') #bwr for diverging
     plt.colorbar()
-    plt.savefig("figures/"+args.attack+str(args.epsilon)+"/"+filename+".png")
+    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+".png")
 
     clean, adv, label = next(iter(adv_dataloaders['test']))
     clean=clean.to(device)
@@ -68,16 +67,16 @@ for filename in filenames:
     
     plt.figure()
     plt.imshow(recon_clean, cmap='gray')
-    plt.savefig("figures/"+args.attack+str(args.epsilon)+"/"+filename+"recon_clean.png")
+    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+"recon_clean.png")
     plt.figure()
     plt.imshow(recon_adv, cmap='gray')
-    plt.savefig("figures/"+args.attack+str(args.epsilon)+"/"+filename+"recon_adv.png")
+    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+"recon_adv.png")
     plt.figure()
     plt.imshow(clean, cmap='gray')
-    plt.savefig("figures/"+args.attack+str(args.epsilon)+"/"+filename+"clean.png")
+    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+"clean.png")
     plt.figure()
     plt.imshow(adv, cmap='gray')
-    plt.savefig("figures/"+args.attack+str(args.epsilon)+"/"+filename+"adv.png")
+    plt.savefig("figures/"+args.attack+"/"+str(args.epsilon)+"/"+filename+"adv.png")
 
 
 
@@ -103,3 +102,4 @@ plt.figure()
 plt.imshow(pgd-df)
 plt.colorbar()
 plt.savefig("figures/difference.png")
+'''

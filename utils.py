@@ -28,7 +28,29 @@ def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
                     out=model(x.to(device))
                     correct+=(torch.argmax(out, axis=1)==y.to(device)).sum().item()
             print("Accuracy on "+i+" set: ", correct/len(dataloaders[i].dataset))
+'''
 
+def single(model, dataloaders, n_epochs, optimizer, scheduler=None):
+
+    loss=torch.nn.CrossEntropyLoss()
+    device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
+    for x,y in dataloaders['train']:
+        for epoch in range(n_epochs):
+            print("Epoch: ", epoch+1, '/', n_epochs)
+            model.train()
+            for x, y in dataloaders['train']:
+            x=x[0].to(device)
+            y=y[0].to(device)
+            out=model(x)
+            l=loss(out, y)
+            print(out, y)
+            optimizer.zero_grad()
+            l.backward()
+            optimizer.step()
+        if scheduler is not None:
+            scheduler.step()
+        model.eval()
+'''
 
 def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer, eps, lam, hybrid=False, scheduler=None):
 

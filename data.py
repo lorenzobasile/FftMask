@@ -42,21 +42,21 @@ def get_dataloaders(data_dir, train_batch_size, test_batch_size, data_transforms
 class AdversarialDataset(Dataset):
 
     def __init__(self, model, adversarytype, dataloader, eps, train):
-        c="advdata/"+adversarytype+str(eps)+"/clean/"+train+".pt"
-        a="advdata/"+adversarytype+str(eps)+"/adv/"+train+".pt"
-        l="advdata/"+adversarytype+str(eps)+"/lbl/"+train+".pt"
+        c="advdata/"+adversarytype+"/"+str(eps)+"/clean/"+train+".pt"
+        a="advdata/"+adversarytype+"/"+str(eps)+"/adv/"+train+".pt"
+        l="advdata/"+adversarytype+"/"+str(eps)+"/lbl/"+train+".pt"
         if os.path.isfile(c) and os.path.isfile(a) and os.path.isfile(l):
             self.clean_imgs=torch.load(c)
             self.adv_imgs=torch.load(a)
             self.labels=torch.load(l)
             print("loading :", a)
             return
-        if not os.path.exists("advdata/"+adversarytype+str(eps)+"/clean"):
-            os.makedirs("advdata/"+adversarytype+str(eps)+"/clean")
-        if not os.path.exists("advdata/"+adversarytype+str(eps)+"/adv"):
-            os.makedirs("advdata/"+adversarytype+str(eps)+"/adv")
-        if not os.path.exists("advdata/"+adversarytype+str(eps)+"/lbl"):
-            os.makedirs("advdata/"+adversarytype+str(eps)+"/lbl")
+        if not os.path.exists("advdata/"+adversarytype+"/"+str(eps)+"/clean"):
+            os.makedirs("advdata/"+adversarytype+"/"+str(eps)+"/clean")
+        if not os.path.exists("advdata/"+adversarytype+"/"+str(eps)+"/adv"):
+            os.makedirs("advdata/"+adversarytype+"/"+str(eps)+"/adv")
+        if not os.path.exists("advdata/"+adversarytype+"/"+str(eps)+"/lbl"):
+            os.makedirs("advdata/"+adversarytype+"/"+str(eps)+"/lbl")
         self.clean_imgs=torch.empty(0,1,128,128)
         self.adv_imgs=torch.empty(0,1,128,128)
         self.labels=torch.empty(0, dtype=torch.int64)
@@ -67,9 +67,11 @@ class AdversarialDataset(Dataset):
             x=x.to(device)
             y=y.to(device)
             if adversarytype=='DF':
-                adversary = fb.attacks.LinfDeepFoolAttack(steps=10, candidates=5)
+                adversary = fb.attacks.LinfDeepFoolAttack(steps=1, candidates=5)
             elif adversarytype=='PGD':
                 adversary = fb.attacks.PGD(steps=10, abs_stepsize=eps/3)
+            elif adversarytype=='FMN':
+                adversary = fb.attacks.L1FMNAttack()
             else:
                 adversary = None
             x_adv, clipped, is_adv = adversary(model, x, y, epsilons=eps)
