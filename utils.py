@@ -28,29 +28,30 @@ def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
                     out=model(x.to(device))
                     correct+=(torch.argmax(out, axis=1)==y.to(device)).sum().item()
             print("Accuracy on "+i+" set: ", correct/len(dataloaders[i].dataset))
-'''
 
-def single(model, dataloaders, n_epochs, optimizer, scheduler=None):
+
+def single(base_model, models, dataloaders, n_epochs, optimizers):
 
     loss=torch.nn.CrossEntropyLoss()
-    device=torch.device("cuda:0" if next(model.parameters()).is_cuda else "cpu")
-    for x,y in dataloaders['train']:
-        for epoch in range(n_epochs):
-            print("Epoch: ", epoch+1, '/', n_epochs)
-            model.train()
-            for x, y in dataloaders['train']:
-            x=x[0].to(device)
-            y=y[0].to(device)
-            out=model(x)
-            l=loss(out, y)
-            print(out, y)
-            optimizer.zero_grad()
+    device=torch.device("cuda:0" if next(models[0].parameters()).is_cuda else "cpu")
+    
+    x,x_adv,y=next(iter(dataloaders['train']))
+    n=len(x_adv)
+    x=x.to(device)
+    x_adv=x_adv.to(device)
+    y=y.to(device)
+    for epoch in range(n_epochs):
+        print("Epoch: ", epoch+1, '/', n_epochs)
+        for i in range(n):
+            models[i].train()
+            out=models[i](x_adv[i])
+            print(torch.argmax(out, axis=1)==y[i])
+            l=loss(out, y[i].reshape(1))
+            optimizers[i].zero_grad()
             l.backward()
-            optimizer.step()
-        if scheduler is not None:
-            scheduler.step()
-        model.eval()
-'''
+            optimizers[i].step()
+
+
 
 def ADVtrain(model, base_model, adversarytype, dataloaders, n_epochs, optimizer, eps, lam, hybrid=False, scheduler=None):
 

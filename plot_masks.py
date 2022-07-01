@@ -29,26 +29,26 @@ base_model = Classifier(args.model)
 base_model = base_model.to(device)
 m=Mask().to(device)
 model=MaskedClf(m, base_model)
-model.load_state_dict(torch.load("trained_models/"+args.attack1+"/"+args.epsilon1+"/lambda_"+args.lambda1))
+model.load_state_dict(torch.load("trained_models/"+args.attack1+"/"+str(args.epsilon1)+"/lambda_"+str(args.lambda1)+".pt"))
 
 mask1=np.fft.fftshift(model.mask.weight.detach().cpu().reshape(128,128))
 
 
-model.load_state_dict(torch.load("trained_models/"+args.attack2+"/"+args.epsilon2+"/lambda_"+args.lambda2))
+model.load_state_dict(torch.load("trained_models/"+args.attack2+"/"+str(args.epsilon2)+"/lambda_"+str(args.lambda2)+".pt"))
 
 mask2=np.fft.fftshift(model.mask.weight.detach().cpu().reshape(128,128))
 
 plt.figure()
-plt.imshow(mask1)
+plt.imshow(mask1, cmap='Blues')
 plt.colorbar()
-plt.savefig("figures/mask1.png")
+plt.savefig(path+"/mask1.png")
 
 plt.figure()
-plt.imshow(mask2)
+plt.imshow(mask2, cmap='Blues')
 plt.colorbar()
-plt.savefig("figures/mask2.png")
+plt.savefig(path+"/mask2.png")
 
 plt.figure()
-plt.imshow(mask2-mask1)
+plt.imshow(mask2-mask1, cmap='bwr')
 plt.colorbar()
-plt.savefig("figures/mask2-mask1.png")
+plt.savefig(path+"/mask2-mask1.png")
