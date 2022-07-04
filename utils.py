@@ -31,49 +31,51 @@ def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
             print("Accuracy on "+i+" set: ", correct/len(dataloaders[i].dataset))
 
 
-def single(models, dataloaders, n_epochs, optimizers, lam):
+def single(models, x, y, n_epochs, optimizers, lam, idx, path):
 
     loss=torch.nn.CrossEntropyLoss()
     device=torch.device("cuda:0" if next(models[0].parameters()).is_cuda else "cpu")
-    
-    x,x_adv,y=next(iter(dataloaders['test']))
-    n=len(x_adv)
+
+    n=len(x)
     x=x.to(device)
-    x_adv=x_adv.to(device)
     y=y.to(device)
     for epoch in range(n_epochs):
         print("Epoch: ", epoch+1, '/', n_epochs)
+        l=loss(out, y[i].reshape(1))
+        penalty=models[i].mask.weight.abs().sum()
+        l+=penalty*lam
+        optimizers[i].zero_grad()
+        l.backward()
+        optimizers[i].step()
         for i in range(n):
             models[i].train()
-            out=models[i](x_adv[i])
+            out=models[i](x[i])
             if epoch==n_epochs-1:
-                print(torch.argmax(out, axis=1)==y[i])
+                correct=torch.argmax(out, axis=1)==y[i]
                 mask=np.fft.fftshift(models[i].mask.weight.detach().cpu().reshape(128,128))
                 plt.figure()
                 plt.imshow(mask, cmap='Blues')
                 plt.colorbar()
-                plt.savefig("figures/single2/"+"/mask"+str(i)+".png")
+                plt.savefig(path+"figures/"+str(idx)+("correct" if correct else "wrong")+".png")
 
-                np.save('mask2'+str(i)+'.npy', mask)
+                np.save(path+"masks/"+str(idx)+("correct" if correct else "wrong")+".npy", mask)
 
+                '''
                 recon_adv=models[i].mask(x_adv[i]).detach().cpu().reshape(128,128)
                 adv=x_adv[i].detach().cpu().reshape(128,128)
-        
-        
+
+
                 plt.figure()
                 plt.imshow(recon_adv, cmap='gray')
                 plt.savefig("figures/single2/"+"recon"+str(i)+".png")
-                
+
                 plt.figure()
                 plt.imshow(adv, cmap='gray')
                 plt.savefig("figures/single2/"+"adv"+str(i)+".png")
-                
-            l=loss(out, y[i].reshape(1))
-            penalty=models[i].mask.weight.abs().sum()
-            l+=penalty*lam
-            optimizers[i].zero_grad()
-            l.backward()
-            optimizers[i].step()
+                '''
+                idx+=1
+
+
 
 
 

@@ -18,9 +18,14 @@ parser.add_argument('--epsilon', type=float, default=0.01, help="epsilon")
 parser.add_argument('--lam', type=float, default=0.01, help="lambda")
 parser.add_argument('--data', type=str, default='./data/imagenette2-320/', help='path to dataset')
 parser.add_argument('--train_batch_size', type=int, default=4, help='train batch size')
-parser.add_argument('--test_batch_size', type=int, default=4, help='test batch size')
+parser.add_argument('--test_batch_size', type=int, default=16, help='test batch size')
 parser.add_argument('--epochs', type=int, default=30, help='number of epochs to train')
 parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
+
+path="./single/"+args.attack+"/"+str(args.epsilon)+"/lambda_"+str(args.lambda)+"/"
+if not os.path.exists(path):
+    os.makedirs(path+"figures")
+    os.makedirs(path+"masks")
 
 args = parser.parse_args()
 
@@ -41,15 +46,15 @@ adv_dataloaders = {'train': DataLoader(AdversarialDataset(fmodel, args.attack, d
 
 print(len(dataloaders['train'].dataset), len(dataloaders['test'].dataset), len(adv_dataloaders['train'].dataset), len(adv_dataloaders['test'].dataset))
 
-
+idx=0
 models=[]
 optimizers=[]
+for x, xadv, y in dataloaders['test']:
+    for i in range(args.test_batch_size):
+        model=MaskedClf(Mask().to(device), base_model)
+        for p in model.clf.parameters():
+            p.requires_grad=False
+        models.append(model)
+        optimizers.append(torch.optim.Adam(model.parameters(), lr=0.01))
 
-for i in range(args.test_batch_size):
-    model=MaskedClf(Mask().to(device), base_model)
-    for p in model.clf.parameters():
-        p.requires_grad=False
-    models.append(model)
-    optimizers.append(torch.optim.Adam(model.parameters(), lr=0.01))
-    
-single(models,  adv_dataloaders, 100, optimizers, args.lam)
+    idx=single(models,  xadv, y, 100, optimizers, args.lam, idx, path)
