@@ -1,5 +1,6 @@
 import torch
-
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 
@@ -30,12 +31,12 @@ def train(model, dataloaders, n_epochs, optimizer, scheduler=None):
             print("Accuracy on "+i+" set: ", correct/len(dataloaders[i].dataset))
 
 
-def single(base_model, models, dataloaders, n_epochs, optimizers):
+def single(models, dataloaders, n_epochs, optimizers, lam):
 
     loss=torch.nn.CrossEntropyLoss()
     device=torch.device("cuda:0" if next(models[0].parameters()).is_cuda else "cpu")
     
-    x,x_adv,y=next(iter(dataloaders['train']))
+    x,x_adv,y=next(iter(dataloaders['test']))
     n=len(x_adv)
     x=x.to(device)
     x_adv=x_adv.to(device)
@@ -45,8 +46,31 @@ def single(base_model, models, dataloaders, n_epochs, optimizers):
         for i in range(n):
             models[i].train()
             out=models[i](x_adv[i])
-            print(torch.argmax(out, axis=1)==y[i])
+            if epoch==n_epochs-1:
+                print(torch.argmax(out, axis=1)==y[i])
+                mask=np.fft.fftshift(models[i].mask.weight.detach().cpu().reshape(128,128))
+                plt.figure()
+                plt.imshow(mask, cmap='Blues')
+                plt.colorbar()
+                plt.savefig("figures/single2/"+"/mask"+str(i)+".png")
+
+                np.save('mask2'+str(i)+'.npy', mask)
+
+                recon_adv=models[i].mask(x_adv[i]).detach().cpu().reshape(128,128)
+                adv=x_adv[i].detach().cpu().reshape(128,128)
+        
+        
+                plt.figure()
+                plt.imshow(recon_adv, cmap='gray')
+                plt.savefig("figures/single2/"+"recon"+str(i)+".png")
+                
+                plt.figure()
+                plt.imshow(adv, cmap='gray')
+                plt.savefig("figures/single2/"+"adv"+str(i)+".png")
+                
             l=loss(out, y[i].reshape(1))
+            penalty=models[i].mask.weight.abs().sum()
+            l+=penalty*lam
             optimizers[i].zero_grad()
             l.backward()
             optimizers[i].step()
